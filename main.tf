@@ -1,4 +1,6 @@
-// Resource Group
+#
+# Resource Group
+#
 
 resource "azurerm_resource_group" "main" {
   name     = local.resource_group_name
@@ -9,7 +11,9 @@ resource "azurerm_resource_group" "main" {
   }
 }
 
-// Modules
+#
+# Modules
+#
 
 module "network" {
   source = "./modules/network"
