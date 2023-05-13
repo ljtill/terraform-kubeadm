@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+set -e
+
+bootstrap_node() {
+    echo -e "\n=> Configuring system..."
+
+    echo -e "\n=> Downloading configuration file..."
+    curl -sLo ./k8s.conf https://ljtill.blob.core.windows.net/artifacts/modules/k8s.conf
+    mv ./k8s.conf /etc/modules-load.d/k8s.conf
+
+    modprobe overlay
+    modprobe br_netfilter
+
+    echo -e "\n=> Downloading configuration file..."
+    curl -sLo ./k8s.conf https://ljtill.blob.core.windows.net/artifacts/sysctl/k8s.conf
+    mv ./k8s.conf /etc/sysctl.d/k8s.conf
+
+    echo -e "\n Configuring kernel parameters..."
+    sysctl --system 1>/dev/null
+
+    echo -e "\n=> Downloading dependencies (containerd)..."
+    curl -sLo ./containerd-1.6.20-linux-amd64.tar.gz https://github.com/containerd/containerd/releases/download/v1.6.20/containerd-1.6.20-linux-amd64.tar.gz
+    curl -sLo ./containerd.service https://raw.githubusercontent.com/containerd/containerd/main/containerd.service
+
+    echo -e "\n=> Expanding dependencies (containerd)..."
+    tar Cxzf /usr/local ./containerd-1.6.20-linux-amd64.tar.gz
+
+    echo -e "\n=> Configuring dependencies (containerd)..."
+    mkdir -p /usr/local/lib/systemd/system
+    chown root:root ./containerd.service
+    mv ./containerd.service /usr/local/lib/systemd/system/
+
+    echo -e "\n=> Configuring dependencies (containerd)..."
+    systemctl daemon-reload
+    systemctl enable --now containerd
+    rm -f ./containerd-1.6.20-linux-amd64.tar.gz
+
+    echo -e "\n=> Downloading dependencies (runc)..."
+    curl -sLo ./runc.amd64 https://github.com/opencontainers/runc/releases/download/v1.1.6/runc.amd64
+
+    echo -e "\n=> Installing dependencies (runc)..."
+    install -m 755 runc.amd64 /usr/local/sbin/runc
+    rm -f ./runc.amd64
+
+    echo -e "\n=> Downloading dependencies (cni plugins)..."
+    curl -sLo ./cni-plugins-linux-amd64-v1.2.0.tgz https://github.com/containernetworking/plugins/releases/download/v1.2.0/cni-plugins-linux-amd64-v1.2.0.tgz
+
+    echo -e "\n=> Expanding dependencies (cni plugins)..."
+    mkdir -p /opt/cni/bin
+    tar Cxzf /opt/cni/bin cni-plugins-linux-amd64-v1.2.0.tgz
+
+    echo -e "\n=> Installing dependencies (cni plugins)..."
+    rm -f ./cni-plugins-linux-amd64-v1.2.0.tgz
+
+    echo -e "\n=> Updating configuration (containerd)..."
+    mkdir -p /etc/containerd
+    containerd config default > /etc/containerd/config.toml
+    sed -r -i " s/SystemdCgroup = false/SystemdCgroup = true/" /etc/containerd/config.toml
+
+    echo -e "\n=> Restarting service (containerd)..."
+    systemctl restart containerd
+
+    echo -e "\n=> Adding repository..."
+    curl -fsSLo /etc/apt/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list 1>/dev/null
+
+    echo -e "\n=> Updating cache..."
+    apt-get update -qq
+
+    echo -e "\n=> Installing packages (kubeadm)..."
+    apt-get install -y kubelet kubeadm kubectl -qq
+    apt-mark hold kubelet kubeadm kubectl -qq
+}
+
+initalize_cluster() {
+    if [ ! -f "/etc/kubernetes/admin.conf" ]; then
+        echo -e "\n127.0.0.1 ${endpoint} apiserver" >> /etc/hosts
+        kubeadm init --token "${token}" --token-ttl 0 --control-plane-endpoint "${endpoint}:6443" --apiserver-cert-extra-sans "${endpoint}" --pod-network-cidr "10.244.0.0/16" --node-name "$(hostname | tr '[:upper:]' '[:lower:]')" --certificate-key "${certificateKey}" --upload-certs
+        export KUBECONFIG=/etc/kubernetes/admin.conf
+        kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+    fi
+}
+
+extend_cluster() {
+    if [ ! -f "/etc/kubernetes/admin.conf" ]; then
+        kubeadm join --token "${token}" --discovery-token-unsafe-skip-ca-verification --node-name "$(hostname | tr '[:upper:]' '[:lower:]')" --certificate-key "${certificateKey}" --control-plane ${endpoint}:6443
+        echo -e "\n127.0.0.1 ${endpoint} apiserver" >> /etc/hosts
+    fi
+}
+
+add_worker() {
+    kubeadm join --token "${token}" --discovery-token-unsafe-skip-ca-verification --node-name "$(hostname | tr '[:upper:]' '[:lower:]')" ${endpoint}:6443
+}
+
+configure_user() {
+    apt-get install -y apt-transport-https -qq
+
+    echo -e "\n=> Adding repository..."
+    curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm.list 1>/dev/null
+
+    echo -e "\n=> Updating cache..."
+    apt-get update -qq
+
+    echo -e "\n Installing packages (helm)..."
+    apt-get install -y helm -qq
+
+    mkdir -p /home/adminuser/.kube
+    cp /etc/kubernetes/admin.conf /home/adminuser/.kube/config
+    chown adminuser:adminuser /home/adminuser/.kube/config
+    chmod go-r /home/adminuser/.kube/config
+}
+
+{
+    if [ -d "/etc/kubernetes" ]; then
+      echo "=> Skipping execution..."
+      exit
+    fi
+
+    bootstrap_node
+
+    %{~ if node == "init" ~}
+    initalize_cluster
+    %{~ endif ~}
+
+    %{~ if node == "control" ~}
+    extend_cluster
+    %{~ endif ~}
+
+    %{~ if node == "worker" ~}
+    add_worker
+    %{~ endif ~}
+
+    %{~ if node == "init" ~}
+    configure_user
+    %{~ endif ~}
+}
