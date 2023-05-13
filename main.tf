@@ -3,12 +3,14 @@
 #
 
 resource "azurerm_resource_group" "main" {
-  name     = local.resource_group_name
+  name     = each.value
   location = local.location
 
   tags = {
     "Service" = "Kubernetes"
   }
+
+  for_each = local.resource_groups
 }
 
 #
@@ -18,25 +20,51 @@ resource "azurerm_resource_group" "main" {
 module "network" {
   source = "./modules/network"
 
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
+  resource_groups = local.resource_groups
+  location        = local.location
 
-  resource_names    = local.resource_names
-  resource_prefixes = local.resource_prefixes
+  depends_on = [
+    azurerm_resource_group.main
+  ]
+}
+
+module "domain" {
+  source = "./modules/domain"
+
+  resource_groups    = local.resource_groups
+  domains            = local.domains
+  virtual_network_id = module.network.virtual_network_id
+
+  depends_on = [
+    azurerm_resource_group.main
+  ]
+}
+
+module "identity" {
+  source = "./modules/identity"
+
+  resource_groups = local.resource_groups
+  location        = local.location
+
+  depends_on = [
+    azurerm_resource_group.main
+  ]
 }
 
 module "compute" {
   source = "./modules/compute"
 
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
+  resource_groups = local.resource_groups
+  location        = local.location
 
-  resource_prefixes = local.resource_prefixes
+  domains = local.domains
 
-  node_count = {
-    control_plane = 2
-    data_plane    = 3
-  }
+  resource_ids = module.identity.resource_ids
 
-  subnet_ids = module.network.subnet_ids
+  subnet_ids  = module.network.subnet_ids
+  backend_ids = module.network.backend_ids
+
+  depends_on = [
+    azurerm_resource_group.main
+  ]
 }

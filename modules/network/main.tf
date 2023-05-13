@@ -3,37 +3,37 @@
 #
 
 resource "azurerm_virtual_network" "main" {
-  name                = var.resource_names.virtual_network
+  name                = "vn-01"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = var.resource_groups.network
 
   address_space = ["172.16.0.0/16"]
 }
 
-resource "azurerm_subnet" "main_default" {
-  name                = "DefaultSubnet"
-  resource_group_name = var.resource_group_name
-
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["172.16.0.0/24"]
-}
 resource "azurerm_subnet" "main_control" {
   name                = "ControlSubnet"
-  resource_group_name = var.resource_group_name
+  resource_group_name = var.resource_groups.network
 
   virtual_network_name = azurerm_virtual_network.main.name
   address_prefixes     = ["172.16.1.0/24"]
 }
-resource "azurerm_subnet" "main_data" {
-  name                = "DataSubnet"
-  resource_group_name = var.resource_group_name
+resource "azurerm_subnet" "main_worker" {
+  name                = "WorkerSubnet"
+  resource_group_name = var.resource_groups.network
 
   virtual_network_name = azurerm_virtual_network.main.name
   address_prefixes     = ["172.16.2.0/24"]
 }
+resource "azurerm_subnet" "main_service" {
+  name                = "ServiceSubnet"
+  resource_group_name = var.resource_groups.network
+
+  virtual_network_name = azurerm_virtual_network.main.name
+  address_prefixes     = ["172.16.5.0/24"]
+}
 resource "azurerm_subnet" "main_bastion" {
   name                = "AzureBastionSubnet"
-  resource_group_name = var.resource_group_name
+  resource_group_name = var.resource_groups.network
 
   virtual_network_name = azurerm_virtual_network.main.name
   address_prefixes     = ["172.16.250.0/24"]
@@ -43,190 +43,168 @@ resource "azurerm_subnet" "main_bastion" {
 # Security Group
 #
 
-resource "azurerm_network_security_group" "main" {
-  name                = var.resource_names.security_group
+resource "azurerm_network_security_group" "main_control" {
+  name                = "sg-01"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = var.resource_groups.network
+}
+resource "azurerm_network_security_group" "main_worker" {
+  name                = "sg-02"
+  location            = var.location
+  resource_group_name = var.resource_groups.network
+}
+resource "azurerm_network_security_group" "main_service" {
+  name                = "sg-03"
+  location            = var.location
+  resource_group_name = var.resource_groups.network
+}
+resource "azurerm_network_security_group" "main_bastion" {
+  name                = "sg-04"
+  location            = var.location
+  resource_group_name = var.resource_groups.network
+
+  dynamic "security_rule" {
+    for_each = local.security_rules
+    content {
+      name                       = security_rule.value["name"]
+      priority                   = security_rule.value["priority"]
+      direction                  = security_rule.value["direction"]
+      access                     = security_rule.value["access"]
+      protocol                   = security_rule.value["protocol"]
+      source_port_range          = security_rule.value["source_port_range"]
+      source_port_ranges         = security_rule.value["source_port_ranges"]
+      destination_port_range     = security_rule.value["destination_port_range"]
+      destination_port_ranges    = security_rule.value["destination_port_ranges"]
+      source_address_prefix      = security_rule.value["source_address_prefix"]
+      destination_address_prefix = security_rule.value["destination_address_prefix"]
+    }
+  }
 }
 
-resource "azurerm_subnet_network_security_group_association" "main_default" {
-  subnet_id                 = azurerm_subnet.main_default.id
-  network_security_group_id = azurerm_network_security_group.main.id
-}
 resource "azurerm_subnet_network_security_group_association" "main_control" {
   subnet_id                 = azurerm_subnet.main_control.id
-  network_security_group_id = azurerm_network_security_group.main.id
+  network_security_group_id = azurerm_network_security_group.main_control.id
 }
-resource "azurerm_subnet_network_security_group_association" "main_data" {
-  subnet_id                 = azurerm_subnet.main_data.id
-  network_security_group_id = azurerm_network_security_group.main.id
+resource "azurerm_subnet_network_security_group_association" "main_worker" {
+  subnet_id                 = azurerm_subnet.main_worker.id
+  network_security_group_id = azurerm_network_security_group.main_worker.id
+}
+resource "azurerm_subnet_network_security_group_association" "main_service" {
+  subnet_id                 = azurerm_subnet.main_service.id
+  network_security_group_id = azurerm_network_security_group.main_service.id
 }
 resource "azurerm_subnet_network_security_group_association" "main_bastion" {
   subnet_id                 = azurerm_subnet.main_bastion.id
-  network_security_group_id = azurerm_network_security_group.main.id
-}
-
-resource "azurerm_network_security_rule" "main_internet_https" {
-  name                        = "AllowHttpsInbound"
-  resource_group_name         = var.resource_group_name
-  network_security_group_name = var.resource_names.security_group
-
-  priority                   = 120
-  direction                  = "Inbound"
-  access                     = "Allow"
-  protocol                   = "Tcp"
-  source_port_range          = "*"
-  destination_port_range     = "443"
-  source_address_prefix      = "Internet"
-  destination_address_prefix = "*"
-}
-resource "azurerm_network_security_rule" "main_gateway" {
-  name                        = "AllowGatewayManagerInbound"
-  resource_group_name         = var.resource_group_name
-  network_security_group_name = var.resource_names.security_group
-
-  priority                   = 130
-  direction                  = "Inbound"
-  access                     = "Allow"
-  protocol                   = "Tcp"
-  source_port_range          = "*"
-  destination_port_range     = "443"
-  source_address_prefix      = "GatewayManager"
-  destination_address_prefix = "*"
-}
-resource "azurerm_network_security_rule" "main_loadbalancer" {
-  name                        = "AllowAzureLoadBalancerInbound"
-  resource_group_name         = var.resource_group_name
-  network_security_group_name = var.resource_names.security_group
-
-  priority                   = 140
-  direction                  = "Inbound"
-  access                     = "Allow"
-  protocol                   = "Tcp"
-  source_port_range          = "*"
-  destination_port_range     = "443"
-  source_address_prefix      = "AzureLoadBalancer"
-  destination_address_prefix = "*"
-}
-resource "azurerm_network_security_rule" "main_host" {
-  name                        = "AllowBastionHostCommunication"
-  resource_group_name         = var.resource_group_name
-  network_security_group_name = var.resource_names.security_group
-
-  priority                   = 150
-  direction                  = "Inbound"
-  access                     = "Allow"
-  protocol                   = "*"
-  source_port_range          = "*"
-  destination_port_ranges    = ["8080", "5701"]
-  source_address_prefix      = "VirtualNetwork"
-  destination_address_prefix = "VirtualNetwork"
-}
-resource "azurerm_network_security_rule" "main_sshrdp" {
-  name                        = "AllowSshRdpOutbound"
-  resource_group_name         = var.resource_group_name
-  network_security_group_name = var.resource_names.security_group
-
-  priority                   = 100
-  direction                  = "Outbound"
-  access                     = "Allow"
-  protocol                   = "*"
-  source_port_range          = "*"
-  destination_port_ranges    = ["22", "3389"]
-  source_address_prefix      = "*"
-  destination_address_prefix = "VirtualNetwork"
-}
-resource "azurerm_network_security_rule" "main_cloud" {
-  name                        = "AllowAzureCloudOutbound"
-  resource_group_name         = var.resource_group_name
-  network_security_group_name = var.resource_names.security_group
-
-  priority                   = 110
-  direction                  = "Outbound"
-  access                     = "Allow"
-  protocol                   = "Tcp"
-  source_port_range          = "*"
-  destination_port_range     = "443"
-  source_address_prefix      = "*"
-  destination_address_prefix = "AzureCloud"
-}
-resource "azurerm_network_security_rule" "main_bastion" {
-  name                        = "AllowBastionCommunication"
-  resource_group_name         = var.resource_group_name
-  network_security_group_name = var.resource_names.security_group
-
-  priority                   = 120
-  direction                  = "Outbound"
-  access                     = "Allow"
-  protocol                   = "*"
-  source_port_range          = "*"
-  destination_port_ranges    = ["8080", "5701"]
-  source_address_prefix      = "VirtualNetwork"
-  destination_address_prefix = "VirtualNetwork"
-}
-resource "azurerm_network_security_rule" "main_internet_http" {
-  name                        = "AllowHttpOutbound"
-  resource_group_name         = var.resource_group_name
-  network_security_group_name = var.resource_names.security_group
-
-  priority                   = 130
-  direction                  = "Outbound"
-  access                     = "Allow"
-  protocol                   = "*"
-  source_port_range          = "*"
-  destination_port_range     = "80"
-  source_address_prefix      = "*"
-  destination_address_prefix = "Internet"
+  network_security_group_id = azurerm_network_security_group.main_bastion.id
 }
 
 #
 # Bastion
 #
 
-resource "azurerm_public_ip" "main" {
-  name                = "${var.resource_names.public_ip}-01"
+resource "azurerm_public_ip" "main_bastion" {
+  name                = "ip-01"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = var.resource_groups.network
 
   allocation_method = "Static"
   sku               = "Standard"
 }
 
 resource "azurerm_bastion_host" "main" {
-  name                = var.resource_names.bastion_host
+  name                = "bs-01"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = var.resource_groups.network
 
   ip_configuration {
     name                 = "IpConf"
     subnet_id            = azurerm_subnet.main_bastion.id
-    public_ip_address_id = azurerm_public_ip.main.id
+    public_ip_address_id = azurerm_public_ip.main_bastion.id
   }
 
-  sku = "Standard"
+  tunneling_enabled = true
+  sku               = "Standard"
+}
+
+#
+# NAT Gateway
+#
+
+resource "azurerm_public_ip" "main_nat" {
+  name                = "ip-02"
+  location            = var.location
+  resource_group_name = var.resource_groups.network
+
+  allocation_method = "Static"
+  sku               = "Standard"
+}
+
+resource "azurerm_nat_gateway" "main" {
+  name                = "ng-01"
+  location            = var.location
+  resource_group_name = var.resource_groups.network
+
+  sku_name                = "Standard"
+  idle_timeout_in_minutes = 10
+}
+
+resource "azurerm_nat_gateway_public_ip_association" "main" {
+  nat_gateway_id       = azurerm_nat_gateway.main.id
+  public_ip_address_id = azurerm_public_ip.main_nat.id
+}
+
+resource "azurerm_subnet_nat_gateway_association" "main_control" {
+  subnet_id      = azurerm_subnet.main_control.id
+  nat_gateway_id = azurerm_nat_gateway.main.id
+}
+resource "azurerm_subnet_nat_gateway_association" "main_worker" {
+  subnet_id      = azurerm_subnet.main_worker.id
+  nat_gateway_id = azurerm_nat_gateway.main.id
 }
 
 #
 # Load Balancer
 #
 
-resource "azurerm_lb" "main" {
-  name                = var.resource_names.load_balancer
+resource "azurerm_lb" "main_control" {
+  name                = "lb-01"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = var.resource_groups.network
 
   frontend_ip_configuration {
-    name                          = "ControlPlane"
+    name                          = "default"
     subnet_id                     = azurerm_subnet.main_control.id
-    private_ip_address_allocation = "Dynamic"
-  }
-
-  frontend_ip_configuration {
-    name                          = "DataPlane"
-    subnet_id                     = azurerm_subnet.main_data.id
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "172.16.1.4"
   }
 
   sku      = "Standard"
   sku_tier = "Regional"
+}
+
+resource "azurerm_lb_backend_address_pool" "main_control" {
+  name            = "default"
+  loadbalancer_id = azurerm_lb.main_control.id
+}
+
+resource "azurerm_lb_probe" "main_control" {
+  name            = "kube-apiserver"
+  loadbalancer_id = azurerm_lb.main_control.id
+
+  port = 6443
+}
+
+resource "azurerm_lb_rule" "main_control" {
+  name            = "kube-apiserver"
+  loadbalancer_id = azurerm_lb.main_control.id
+
+  frontend_ip_configuration_name = "default"
+  backend_address_pool_ids = [
+    azurerm_lb_backend_address_pool.main_control.id
+  ]
+  probe_id = azurerm_lb_probe.main_control.id
+
+  protocol      = "Tcp"
+  frontend_port = 6443
+  backend_port  = 6443
 }
