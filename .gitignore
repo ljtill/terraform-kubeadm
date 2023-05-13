@@ -35,3 +35,6 @@ terraform.rc
 
 # SSH files
 **/.ssh/*
+
+# Environment files
+*.env
