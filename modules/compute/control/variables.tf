@@ -2,8 +2,8 @@
 # Defaults
 #
 
-variable "resource_groups" {
-  type = map(string)
+variable "resource_group_name" {
+  type = string
 }
 variable "location" {
   type = string
@@ -12,6 +12,17 @@ variable "location" {
 #
 # Resources
 #
+
+variable "token_id" {
+  type = string
+}
+variable "token_secret" {
+  type = string
+}
+
+variable "certificate_key" {
+  type = string
+}
 
 variable "domains" {
   type = map(string)
