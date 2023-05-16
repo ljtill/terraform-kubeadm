@@ -7,7 +7,4 @@ locals {
     control  = "kubernetes-control-${local.location}"
     worker   = "kubernetes-worker-${local.location}"
   }
-  domains = {
-    root = ""
-  }
 }

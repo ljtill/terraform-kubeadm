@@ -1,36 +1,55 @@
+data "azurerm_client_config" "current" {}
+
+#
+# Managed Identities
+#
+
+resource "azurerm_user_assigned_identity" "main" {
+  name                = "mi-02"
+  location            = var.settings.location
+  resource_group_name = var.settings.resource_groups.identity
+}
+
+resource "azurerm_role_assignment" "main" {
+  scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.settings.resource_groups.worker}"
+  role_definition_name = "Contributor"
+  principal_id         = azurerm_user_assigned_identity.main.principal_id
+}
+
+
 #
 # Scale Set
 #
 
 resource "azurerm_orchestrated_virtual_machine_scale_set" "main" {
   name                = "ss-01"
-  location            = var.location
-  resource_group_name = var.resource_group_name
+  location            = var.settings.location
+  resource_group_name = var.settings.resource_groups.worker
 
-  sku_name  = "Standard_D8s_v5"
-  instances = 3
+  sku_name  = var.settings.compute.virtual_machine_scale_sets.size
+  instances = var.settings.compute.virtual_machine_scale_sets.instances.default
 
   os_profile {
     linux_configuration {
       computer_name_prefix = "vm-ss-"
-      admin_username       = "adminuser"
+      admin_username       = var.settings.compute.credentials.username
       admin_ssh_key {
-        username   = "adminuser"
-        public_key = file(".ssh/id_rsa.pub")
+        username   = var.settings.compute.credentials.username
+        public_key = file(var.settings.compute.credentials.ssh_key_path)
       }
     }
   }
 
   source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts-gen2"
-    version   = "latest"
+    publisher = var.settings.compute.image.publisher
+    offer     = var.settings.compute.image.offer
+    sku       = var.settings.compute.image.sku
+    version   = var.settings.compute.image.version
   }
 
   os_disk {
     caching              = "ReadWrite"
-    storage_account_type = "Premium_LRS"
+    storage_account_type = var.settings.compute.virtual_machine_scale_sets.disk_type
   }
 
   network_interface {
@@ -40,7 +59,7 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "main" {
     ip_configuration {
       name      = "ipconfig1"
       primary   = true
-      subnet_id = var.subnet_ids.worker_plane
+      subnet_id = var.settings.network.subnet_ids.worker_plane
     }
   }
 
@@ -55,9 +74,9 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "main" {
       script = base64encode(templatefile("templates/kubernetes/install.tftpl",
         {
           node           = "worker"
-          token          = "${var.token_id}.${var.token_secret}"
-          certificateKey = "${var.certificate_key}"
-          endpoint       = "apiserver.${var.domains.root}"
+          token          = "${var.settings.cluster.token_id}.${var.settings.cluster.token_secret}"
+          certificateKey = "${var.settings.cluster.certificate_key}"
+          endpoint       = "apiserver.${var.settings.domain.dns_zone}"
       }))
     })
   }
@@ -66,7 +85,7 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "main" {
 
   identity {
     type         = "UserAssigned"
-    identity_ids = [var.resource_ids.worker_plane]
+    identity_ids = [azurerm_user_assigned_identity.main.id]
   }
 }
 
@@ -76,17 +95,17 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "main" {
 
 resource "azurerm_monitor_autoscale_setting" "main" {
   name                = "default"
-  location            = var.location
-  resource_group_name = var.resource_group_name
+  location            = var.settings.location
+  resource_group_name = var.settings.resource_groups.worker
   target_resource_id  = azurerm_orchestrated_virtual_machine_scale_set.main.id
 
   profile {
     name = "Profile"
 
     capacity {
-      default = 5
-      minimum = 3
-      maximum = 10
+      default = var.settings.compute.virtual_machine_scale_sets.instances.default
+      minimum = var.settings.compute.virtual_machine_scale_sets.instances.minimum
+      maximum = var.settings.compute.virtual_machine_scale_sets.instances.maximum
     }
 
     rule {
