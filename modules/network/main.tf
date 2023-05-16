@@ -4,39 +4,39 @@
 
 resource "azurerm_virtual_network" "main" {
   name                = "vn-01"
-  location            = var.location
-  resource_group_name = var.resource_groups.network
+  location            = var.settings.location
+  resource_group_name = var.settings.resource_groups.network
 
-  address_space = ["172.16.0.0/16"]
+  address_space = [var.settings.network.virtual_network.address_space]
 }
 
 resource "azurerm_subnet" "main_control" {
   name                = "ControlSubnet"
-  resource_group_name = var.resource_groups.network
+  resource_group_name = var.settings.resource_groups.network
 
   virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["172.16.1.0/24"]
+  address_prefixes     = [var.settings.network.virtual_network.subnets.control.address_prefix]
 }
 resource "azurerm_subnet" "main_worker" {
   name                = "WorkerSubnet"
-  resource_group_name = var.resource_groups.network
+  resource_group_name = var.settings.resource_groups.network
 
   virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["172.16.2.0/24"]
+  address_prefixes     = [var.settings.network.virtual_network.subnets.worker.address_prefix]
 }
 resource "azurerm_subnet" "main_service" {
   name                = "ServiceSubnet"
-  resource_group_name = var.resource_groups.network
+  resource_group_name = var.settings.resource_groups.network
 
   virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["172.16.5.0/24"]
+  address_prefixes     = [var.settings.network.virtual_network.subnets.service.address_prefix]
 }
 resource "azurerm_subnet" "main_bastion" {
   name                = "AzureBastionSubnet"
-  resource_group_name = var.resource_groups.network
+  resource_group_name = var.settings.resource_groups.network
 
   virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["172.16.250.0/24"]
+  address_prefixes     = [var.settings.network.virtual_network.subnets.bastion.address_prefix]
 }
 
 #
@@ -45,23 +45,23 @@ resource "azurerm_subnet" "main_bastion" {
 
 resource "azurerm_network_security_group" "main_control" {
   name                = "sg-01"
-  location            = var.location
-  resource_group_name = var.resource_groups.network
+  location            = var.settings.location
+  resource_group_name = var.settings.resource_groups.network
 }
 resource "azurerm_network_security_group" "main_worker" {
   name                = "sg-02"
-  location            = var.location
-  resource_group_name = var.resource_groups.network
+  location            = var.settings.location
+  resource_group_name = var.settings.resource_groups.network
 }
 resource "azurerm_network_security_group" "main_service" {
   name                = "sg-03"
-  location            = var.location
-  resource_group_name = var.resource_groups.network
+  location            = var.settings.location
+  resource_group_name = var.settings.resource_groups.network
 }
 resource "azurerm_network_security_group" "main_bastion" {
   name                = "sg-04"
-  location            = var.location
-  resource_group_name = var.resource_groups.network
+  location            = var.settings.location
+  resource_group_name = var.settings.resource_groups.network
 
   dynamic "security_rule" {
     for_each = local.security_rules
@@ -104,8 +104,8 @@ resource "azurerm_subnet_network_security_group_association" "main_bastion" {
 
 resource "azurerm_public_ip" "main_bastion" {
   name                = "ip-01"
-  location            = var.location
-  resource_group_name = var.resource_groups.network
+  location            = var.settings.location
+  resource_group_name = var.settings.resource_groups.network
 
   allocation_method = "Static"
   sku               = "Standard"
@@ -113,8 +113,8 @@ resource "azurerm_public_ip" "main_bastion" {
 
 resource "azurerm_bastion_host" "main" {
   name                = "bs-01"
-  location            = var.location
-  resource_group_name = var.resource_groups.network
+  location            = var.settings.location
+  resource_group_name = var.settings.resource_groups.network
 
   ip_configuration {
     name                 = "IpConf"
@@ -132,8 +132,8 @@ resource "azurerm_bastion_host" "main" {
 
 resource "azurerm_public_ip" "main_nat" {
   name                = "ip-02"
-  location            = var.location
-  resource_group_name = var.resource_groups.network
+  location            = var.settings.location
+  resource_group_name = var.settings.resource_groups.network
 
   allocation_method = "Static"
   sku               = "Standard"
@@ -141,8 +141,8 @@ resource "azurerm_public_ip" "main_nat" {
 
 resource "azurerm_nat_gateway" "main" {
   name                = "ng-01"
-  location            = var.location
-  resource_group_name = var.resource_groups.network
+  location            = var.settings.location
+  resource_group_name = var.settings.resource_groups.network
 
   sku_name                = "Standard"
   idle_timeout_in_minutes = 10
@@ -168,14 +168,14 @@ resource "azurerm_subnet_nat_gateway_association" "main_worker" {
 
 resource "azurerm_lb" "main_control" {
   name                = "lb-01"
-  location            = var.location
-  resource_group_name = var.resource_groups.network
+  location            = var.settings.location
+  resource_group_name = var.settings.resource_groups.network
 
   frontend_ip_configuration {
     name                          = "default"
     subnet_id                     = azurerm_subnet.main_control.id
     private_ip_address_allocation = "Static"
-    private_ip_address            = "172.16.1.4"
+    private_ip_address            = var.settings.network.load_balancer.frontend.ip_address
   }
 
   sku      = "Standard"

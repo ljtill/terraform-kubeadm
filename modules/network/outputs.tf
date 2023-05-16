@@ -12,5 +12,6 @@ output "subnet_ids" {
 output "backend_ids" {
   value = {
     control_plane = azurerm_lb_backend_address_pool.main_control.id
+    worker_plane  = ""
   }
 }

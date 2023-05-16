@@ -25,36 +25,35 @@ resource "random_id" "certificate_key" {
 module "control" {
   source = "./control"
 
-  resource_group_name = var.resource_groups.control
-  location            = var.location
-
-  token_secret    = random_string.token_secret.result
-  token_id        = random_string.token_id.result
-  certificate_key = random_id.certificate_key.hex
-
-  domains = var.domains
-
-  resource_ids = var.resource_ids
-
-  subnet_ids  = var.subnet_ids
-  backend_ids = var.backend_ids
+  settings = {
+    location        = var.settings.location
+    resource_groups = var.settings.resource_groups
+    cluster = {
+      token_id        = random_string.token_id.result
+      token_secret    = random_string.token_secret.result
+      certificate_key = random_id.certificate_key.hex
+    }
+    compute = var.settings.compute
+    domain  = var.settings.domain
+    network = var.settings.network
+  }
 }
 
 module "worker" {
   source = "./worker"
 
-  resource_group_name = var.resource_groups.worker
-  location            = var.location
-
-  token_secret    = random_string.token_secret.result
-  token_id        = random_string.token_id.result
-  certificate_key = random_id.certificate_key.hex
-
-  domains = var.domains
-
-  resource_ids = var.resource_ids
-
-  subnet_ids = var.subnet_ids
+  settings = {
+    location        = var.settings.location
+    resource_groups = var.settings.resource_groups
+    cluster = {
+      token_id        = random_string.token_id.result
+      token_secret    = random_string.token_secret.result
+      certificate_key = random_id.certificate_key.hex
+    }
+    compute = var.settings.compute
+    domain  = var.settings.domain
+    network = var.settings.network
+  }
 
   depends_on = [
     module.control
