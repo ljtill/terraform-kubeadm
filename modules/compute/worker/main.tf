@@ -1,22 +1,3 @@
-data "azurerm_client_config" "current" {}
-
-#
-# Managed Identities
-#
-
-resource "azurerm_user_assigned_identity" "main" {
-  name                = "mi-02"
-  location            = var.settings.location
-  resource_group_name = var.settings.resource_groups.identity
-}
-
-resource "azurerm_role_assignment" "main" {
-  scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.settings.resource_groups.worker}"
-  role_definition_name = "Contributor"
-  principal_id         = azurerm_user_assigned_identity.main.principal_id
-}
-
-
 #
 # Scale Set
 #
@@ -85,7 +66,7 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "main" {
 
   identity {
     type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.main.id]
+    identity_ids = [var.settings.identity.user_ids.worker_plane]
   }
 }
 

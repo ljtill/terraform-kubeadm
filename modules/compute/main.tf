@@ -1,5 +1,7 @@
+data "azurerm_client_config" "current" {}
+
 #
-# Resources
+# Settings
 #
 
 resource "random_string" "token_id" {
@@ -33,9 +35,10 @@ module "control" {
       token_secret    = random_string.token_secret.result
       certificate_key = random_id.certificate_key.hex
     }
-    compute = var.settings.compute
-    domain  = var.settings.domain
-    network = var.settings.network
+    compute  = var.settings.compute
+    network  = var.settings.network
+    domain   = var.settings.domain
+    identity = var.settings.identity
   }
 }
 
@@ -50,9 +53,10 @@ module "worker" {
       token_secret    = random_string.token_secret.result
       certificate_key = random_id.certificate_key.hex
     }
-    compute = var.settings.compute
-    domain  = var.settings.domain
-    network = var.settings.network
+    compute  = var.settings.compute
+    network  = var.settings.network
+    domain   = var.settings.domain
+    identity = var.settings.identity
   }
 
   depends_on = [

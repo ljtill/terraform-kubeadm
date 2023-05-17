@@ -1,31 +1,3 @@
-data "azurerm_client_config" "current" {}
-
-#
-# Managed Identities
-#
-
-resource "azurerm_user_assigned_identity" "main" {
-  name                = "mi-01"
-  location            = var.settings.location
-  resource_group_name = var.settings.resource_groups.identity
-}
-
-resource "azurerm_role_assignment" "main" {
-  scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.settings.resource_groups.control}"
-  role_definition_name = "Contributor"
-  principal_id         = azurerm_user_assigned_identity.main.principal_id
-}
-resource "azurerm_role_assignment" "main_worker" {
-  scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.settings.resource_groups.worker}"
-  role_definition_name = "Contributor"
-  principal_id         = azurerm_user_assigned_identity.main.principal_id
-}
-resource "azurerm_role_assignment" "main_network" {
-  scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.settings.resource_groups.network}"
-  role_definition_name = "Contributor"
-  principal_id         = azurerm_user_assigned_identity.main.principal_id
-}
-
 #
 # Network Interfaces
 #
@@ -120,7 +92,7 @@ resource "azurerm_linux_virtual_machine" "main_primary" {
 
   identity {
     type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.main.id]
+    identity_ids = [var.settings.identity.user_ids.control_plane]
   }
 }
 resource "azurerm_linux_virtual_machine" "main_secondary" {
@@ -156,7 +128,7 @@ resource "azurerm_linux_virtual_machine" "main_secondary" {
 
   identity {
     type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.main.id]
+    identity_ids = [var.settings.identity.user_ids.control_plane]
   }
 }
 resource "azurerm_linux_virtual_machine" "main_tertiary" {
@@ -192,7 +164,7 @@ resource "azurerm_linux_virtual_machine" "main_tertiary" {
 
   identity {
     type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.main.id]
+    identity_ids = [var.settings.identity.user_ids.control_plane]
   }
 }
 

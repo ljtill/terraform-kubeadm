@@ -22,6 +22,19 @@ variable "settings" {
         sku       = string
         version   = string
       })
+      virtual_machines = object({
+        size      = string
+        disk_type = string
+        primary = object({
+          ip_address = string
+        })
+        secondary = object({
+          ip_address = string
+        })
+        tertiary = object({
+          ip_address = string
+        })
+      })
       virtual_machine_scale_sets = object({
         size      = string
         disk_type = string
@@ -32,18 +45,24 @@ variable "settings" {
         })
       })
     })
-    domain = object({
-      dns_zone = string
-      records = object({
-        apiserver = string
-      })
-    })
     network = object({
       subnet_ids = object({
         control_plane = string
         worker_plane  = string
       })
       backend_ids = object({
+        control_plane = string
+        worker_plane  = string
+      })
+    })
+    domain = object({
+      dns_zone = string
+      records = object({
+        apiserver = string
+      })
+    })
+    identity = object({
+      user_ids = object({
         control_plane = string
         worker_plane  = string
       })
