@@ -6,5 +6,6 @@ locals {
     identity = "kubernetes-identity-${local.location}"
     control  = "kubernetes-control-${local.location}"
     worker   = "kubernetes-worker-${local.location}"
+    vault    = "kubernetes-vault-${local.location}"
   }
 }

@@ -35,11 +35,14 @@ variable "settings" {
           ip_address = string
         })
       })
-    })
-    domain = object({
-      dns_zone = string
-      records = object({
-        apiserver = string
+      virtual_machine_scale_sets = object({
+        size      = string
+        disk_type = string
+        instances = object({
+          default = number
+          minimum = number
+          maximum = number
+        })
       })
     })
     network = object({
@@ -48,6 +51,18 @@ variable "settings" {
         worker_plane  = string
       })
       backend_ids = object({
+        control_plane = string
+        worker_plane  = string
+      })
+    })
+    domain = object({
+      dns_zone = string
+      records = object({
+        apiserver = string
+      })
+    })
+    identity = object({
+      user_ids = object({
         control_plane = string
         worker_plane  = string
       })
