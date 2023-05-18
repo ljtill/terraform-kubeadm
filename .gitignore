@@ -36,5 +36,5 @@ terraform.rc
 # SSH files
 **/.ssh/*
 
-# Environment files
-*.env
+# Kubernetss files
+**/manifests/*
