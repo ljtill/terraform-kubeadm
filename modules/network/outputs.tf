@@ -4,6 +4,7 @@ output "virtual_network_id" {
 
 output "subnet_ids" {
   value = {
+    service_plane = azurerm_subnet.main_bastion.id
     control_plane = azurerm_subnet.main_control.id
     worker_plane  = azurerm_subnet.main_worker.id
   }

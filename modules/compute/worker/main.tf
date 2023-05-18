@@ -1,14 +1,40 @@
+data "azurerm_client_config" "current" {}
+
+#
+# Resource Group
+#
+
+resource "azurerm_resource_group" "main" {
+  name     = var.settings.resource_groups.worker
+  location = var.settings.location
+
+  tags = {
+    "Service" = "Kubernetes"
+  }
+}
+
+resource "azurerm_role_assignment" "main_control" {
+  scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${azurerm_resource_group.main.name}"
+  role_definition_name = "Contributor"
+  principal_id         = var.settings.identity.principal_ids.control_plane
+}
+resource "azurerm_role_assignment" "main_worker" {
+  scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${azurerm_resource_group.main.name}"
+  role_definition_name = "Contributor"
+  principal_id         = var.settings.identity.principal_ids.worker_plane
+}
+
 #
 # Scale Set
 #
 
 resource "azurerm_orchestrated_virtual_machine_scale_set" "main" {
   name                = "ss-01"
-  location            = var.settings.location
-  resource_group_name = var.settings.resource_groups.worker
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
 
   sku_name  = var.settings.compute.virtual_machine_scale_sets.size
-  instances = var.settings.compute.virtual_machine_scale_sets.instances.default
+  instances = var.settings.compute.virtual_machine_scale_sets.instances.minimum
 
   os_profile {
     linux_configuration {
@@ -57,7 +83,7 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "main" {
           node           = "worker"
           token          = "${var.settings.cluster.token_id}.${var.settings.cluster.token_secret}"
           certificateKey = "${var.settings.cluster.certificate_key}"
-          endpoint       = "apiserver.${var.settings.domain.dns_zone}"
+          endpoint       = "apiserver.${var.settings.network.dns_zone.name}"
       }))
     })
   }
@@ -76,8 +102,8 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "main" {
 
 resource "azurerm_monitor_autoscale_setting" "main" {
   name                = "default"
-  location            = var.settings.location
-  resource_group_name = var.settings.resource_groups.worker
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
   target_resource_id  = azurerm_orchestrated_virtual_machine_scale_set.main.id
 
   profile {

@@ -2,33 +2,15 @@
 set -e
 
 variables() {
-    if [ -z "$ARM_SUBSCRIPTION_ID" ]; then
-        echo "Variable ARM_SUBSCRIPTION_ID is unset"
-        exit 1
-    fi
-    if [ -z "$ARM_RESOURCE_GROUP" ]; then
-        echo "Variable ARM_RESOURCE_GROUP is unset"
-        exit 1
-    fi
-    if [ -z "$ARM_BASTION_RESOURCE_GROUP" ]; then
-        echo "Variable ARM_BASTION_RESOURCE_GROUP is unset"
-        exit 1
-    fi
-    if [ -z "$ARM_BASTION_NAME" ]; then
-        echo "Variable ARM_BASTION_NAME is unset"
+    export $(cat azure.env | xargs)
+    if [ -z "$ARM_BASTION_ADDRESS" ]; then
+        echo "Variable ARM_BASTION_ADDRESS is unset"
         exit 1
     fi
 }
 
 {
-    export $(cat azure.env | xargs)
     variables
     echo "=> Connecting to $1"
-    az network bastion ssh \
-        --name "$ARM_BASTION_NAME" \
-        --resource-group "$ARM_BASTION_RESOURCE_GROUP" \
-        --target-resource-id "/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/$ARM_RESOURCE_GROUP/providers/Microsoft.Compute/virtualMachines/$1" \
-        --auth-type "ssh-key" \
-        --username "adminuser" \
-        --ssh-key ".ssh/id_rsa"
+    ssh -i .ssh/id_rsa -J adminuser@$ARM_BASTION_ADDRESS adminuser@172.16.1.5
 }
