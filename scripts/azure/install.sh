@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 install_secret() {
-    kubectl apply -f ./manifests/kubernetes/secrets.yaml -n kube-system
+    kubectl apply -f ./manifests/kubernetes/secret.yaml -n kube-system
 }
 
 install_controller() {
