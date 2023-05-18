@@ -1,3 +1,5 @@
+data "azurerm_client_config" "current" {}
+
 #
 # Modules
 #
@@ -42,4 +44,43 @@ module "network" {
       user_ids      = module.identity.user_ids
     }
   }
+}
+
+#
+# Manifests
+#
+
+resource "local_file" "main" {
+  filename = "./manifests/kubernetes/secret.yaml"
+  content  = <<-EOT
+    ---
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: cloud-config
+      namespace: kube-system
+    type: Opaque
+    stringData:
+      cloud-config: |-
+        {
+          "cloud": "AzurePublicCloud",
+          "tenantId": "${data.azurerm_client_config.current.tenant_id}",
+          "subscriptionId": "${data.azurerm_client_config.current.subscription_id}",
+          "resourceGroup": "${local.resource_groups.worker}",
+          "location": "uksouth",
+          "vnetName": "vn-01",
+          "vnetResourceGroup": "${local.resource_groups.network}",
+          "subnetName": "ServiceSubnet",
+          "securityGroupName": "sg-01",
+          "securityGroupResourceGroup": "${local.resource_groups.network}",
+          "vmType": "vmssflex",
+          "primaryScaleSetName": "ss-01",
+          "loadBalancerSku": "standard",
+          "loadBalancerName": "kubernetes",
+          "loadBalancerResourceGroup": "${local.resource_groups.network}",
+          "useInstanceMetadata": true,
+          "useManagedIdentityExtension": true,
+          "userAssignedIdentityID": "${module.identity.principal_ids.control_plane}"
+        }
+  EOT
 }
