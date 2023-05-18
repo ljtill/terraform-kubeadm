@@ -1,11 +1,32 @@
+data "azurerm_client_config" "current" {}
+
+#
+# Resource Group
+#
+
+resource "azurerm_resource_group" "main" {
+  name     = var.settings.resource_groups.control
+  location = var.settings.location
+
+  tags = {
+    "Service" = "Kubernetes"
+  }
+}
+
+resource "azurerm_role_assignment" "main" {
+  scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${azurerm_resource_group.main.name}"
+  role_definition_name = "Contributor"
+  principal_id         = var.settings.identity.principal_ids.control_plane
+}
+
 #
 # Network Interfaces
 #
 
 resource "azurerm_network_interface" "main_primary" {
   name                = "ni-01"
-  location            = var.settings.location
-  resource_group_name = var.settings.resource_groups.control
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
 
   ip_configuration {
     name                          = "ipconfig1"
@@ -16,8 +37,8 @@ resource "azurerm_network_interface" "main_primary" {
 }
 resource "azurerm_network_interface" "main_secondary" {
   name                = "ni-02"
-  location            = var.settings.location
-  resource_group_name = var.settings.resource_groups.control
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
 
   ip_configuration {
     name                          = "ipconfig1"
@@ -28,8 +49,8 @@ resource "azurerm_network_interface" "main_secondary" {
 }
 resource "azurerm_network_interface" "main_tertiary" {
   name                = "ni-03"
-  location            = var.settings.location
-  resource_group_name = var.settings.resource_groups.control
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
 
   ip_configuration {
     name                          = "ipconfig1"
@@ -61,8 +82,8 @@ resource "azurerm_network_interface_backend_address_pool_association" "main_tert
 
 resource "azurerm_linux_virtual_machine" "main_primary" {
   name                = "vm-01"
-  location            = var.settings.location
-  resource_group_name = var.settings.resource_groups.control
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
 
   size           = var.settings.compute.virtual_machines.size
   admin_username = var.settings.compute.credentials.username
@@ -97,8 +118,8 @@ resource "azurerm_linux_virtual_machine" "main_primary" {
 }
 resource "azurerm_linux_virtual_machine" "main_secondary" {
   name                = "vm-02"
-  location            = var.settings.location
-  resource_group_name = var.settings.resource_groups.control
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
 
   size           = var.settings.compute.virtual_machines.size
   admin_username = var.settings.compute.credentials.username
@@ -133,8 +154,8 @@ resource "azurerm_linux_virtual_machine" "main_secondary" {
 }
 resource "azurerm_linux_virtual_machine" "main_tertiary" {
   name                = "vm-03"
-  location            = var.settings.location
-  resource_group_name = var.settings.resource_groups.control
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
 
   size           = var.settings.compute.virtual_machines.size
   admin_username = var.settings.compute.credentials.username
@@ -187,7 +208,7 @@ resource "azurerm_virtual_machine_extension" "main_primary" {
         node           = "init"
         token          = "${var.settings.cluster.token_id}.${var.settings.cluster.token_secret}"
         certificateKey = "${var.settings.cluster.certificate_key}"
-        endpoint       = "apiserver.${var.settings.domain.dns_zone}"
+        endpoint       = "apiserver.${var.settings.network.dns_zone.name}"
     }))
   })
 }
@@ -206,7 +227,7 @@ resource "azurerm_virtual_machine_extension" "main_secondary" {
         node           = "control"
         token          = "${var.settings.cluster.token_id}.${var.settings.cluster.token_secret}"
         certificateKey = "${var.settings.cluster.certificate_key}"
-        endpoint       = "apiserver.${var.settings.domain.dns_zone}"
+        endpoint       = "apiserver.${var.settings.network.dns_zone.name}"
     }))
   })
 
@@ -229,7 +250,7 @@ resource "azurerm_virtual_machine_extension" "main_tertiary" {
         node           = "control"
         token          = "${var.settings.cluster.token_id}.${var.settings.cluster.token_secret}"
         certificateKey = "${var.settings.cluster.certificate_key}"
-        endpoint       = "apiserver.${var.settings.domain.dns_zone}"
+        endpoint       = "apiserver.${var.settings.network.dns_zone.name}"
     }))
   })
 

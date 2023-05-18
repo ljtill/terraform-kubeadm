@@ -1,5 +1,3 @@
-data "azurerm_client_config" "current" {}
-
 #
 # Settings
 #
@@ -21,8 +19,19 @@ resource "random_id" "certificate_key" {
 }
 
 #
-# Modules
+# Resources
 #
+
+module "bastion" {
+  source = "./bastion"
+
+  settings = {
+    location        = var.settings.location
+    resource_groups = var.settings.resource_groups
+    compute         = var.settings.compute
+    network         = var.settings.network
+  }
+}
 
 module "control" {
   source = "./control"
@@ -37,7 +46,6 @@ module "control" {
     }
     compute  = var.settings.compute
     network  = var.settings.network
-    domain   = var.settings.domain
     identity = var.settings.identity
   }
 }
@@ -55,7 +63,6 @@ module "worker" {
     }
     compute  = var.settings.compute
     network  = var.settings.network
-    domain   = var.settings.domain
     identity = var.settings.identity
   }
 

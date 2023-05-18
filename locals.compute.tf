@@ -10,6 +10,11 @@ locals {
       sku       = "22_04-lts-gen2"
       version   = "latest"
     }
+    bastion = {
+      ip_address = "172.16.10.4"
+      size       = "Standard_D2s_v5"
+      disk_type  = "Premium_LRS"
+    }
     virtual_machines = {
       size      = "Standard_D8s_v5"
       disk_type = "Premium_LRS"

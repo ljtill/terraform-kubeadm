@@ -46,28 +46,12 @@ variable "settings" {
       })
     })
     network = object({
-      dns_zone = object({
-        name = string
-        records = object({
-          apiserver = string
-        })
-      })
       subnet_ids = object({
         service_plane = string
         control_plane = string
         worker_plane  = string
       })
       backend_ids = object({
-        control_plane = string
-        worker_plane  = string
-      })
-    })
-    identity = object({
-      principal_ids = object({
-        control_plane = string
-        worker_plane  = string
-      })
-      user_ids = object({
         control_plane = string
         worker_plane  = string
       })

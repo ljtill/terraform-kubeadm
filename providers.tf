@@ -4,9 +4,16 @@ terraform {
     random = {
       source = "hashicorp/random"
     }
+    http = {
+      source = "hashicorp/http"
+    }
+    local = {
+      source = "hashicorp/local"
+    }
     azurerm = {
       source = "hashicorp/azurerm"
     }
+
   }
 }
 

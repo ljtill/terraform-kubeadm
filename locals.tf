@@ -2,10 +2,9 @@ locals {
   location = "uksouth"
   resource_groups = {
     network  = "kubernetes-network-${local.location}"
-    domain   = "kubernetes-domain-${local.location}"
     identity = "kubernetes-identity-${local.location}"
+    bastion  = "kubernetes-bastion-${local.location}"
     control  = "kubernetes-control-${local.location}"
     worker   = "kubernetes-worker-${local.location}"
-    vault    = "kubernetes-vault-${local.location}"
   }
 }
