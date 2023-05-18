@@ -43,14 +43,3 @@ module "network" {
     }
   }
 }
-
-#
-# Resources
-#
-
-resource "local_file" "main" {
-  filename = "azure.env"
-  content  = <<-EOT
-    ARM_BASTION_ADDRESS=${module.compute.bastion.public_ip}
-  EOT
-}
