@@ -80,7 +80,7 @@ resource "local_file" "main" {
           "loadBalancerResourceGroup": "${local.resource_groups.network}",
           "useInstanceMetadata": true,
           "useManagedIdentityExtension": true,
-          "userAssignedIdentityID": "${module.identity.principal_ids.control_plane}"
+          "userAssignedIdentityID": "${module.identity.principal_ids.control}"
         }
   EOT
 }

@@ -27,12 +27,12 @@ variable "settings" {
     })
     identity = object({
       principal_ids = object({
-        control_plane = string
-        worker_plane  = string
+        control = string
+        worker  = string
       })
       user_ids = object({
-        control_plane = string
-        worker_plane  = string
+        control = string
+        worker  = string
       })
     })
   })

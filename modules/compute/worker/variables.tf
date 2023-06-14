@@ -22,6 +22,11 @@ variable "settings" {
         sku       = string
         version   = string
       })
+      bastion = object({
+        ip_address = string
+        size       = string
+        disk_type  = string
+      })
       virtual_machines = object({
         size      = string
         disk_type = string
@@ -53,23 +58,23 @@ variable "settings" {
         })
       })
       subnet_ids = object({
-        service_plane = string
-        control_plane = string
-        worker_plane  = string
+        control = string
+        worker  = string
+        bastion = string
       })
       backend_ids = object({
-        control_plane = string
-        worker_plane  = string
+        control = string
+        worker  = string
       })
     })
     identity = object({
       principal_ids = object({
-        control_plane = string
-        worker_plane  = string
+        control = string
+        worker  = string
       })
       user_ids = object({
-        control_plane = string
-        worker_plane  = string
+        control = string
+        worker  = string
       })
     })
   })

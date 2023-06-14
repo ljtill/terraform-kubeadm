@@ -16,12 +16,12 @@ resource "azurerm_resource_group" "main" {
 resource "azurerm_role_assignment" "main_control" {
   scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${azurerm_resource_group.main.name}"
   role_definition_name = "Contributor"
-  principal_id         = var.settings.identity.principal_ids.control_plane
+  principal_id         = var.settings.identity.principal_ids.control
 }
 resource "azurerm_role_assignment" "main_worker" {
   scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${azurerm_resource_group.main.name}"
   role_definition_name = "Contributor"
-  principal_id         = var.settings.identity.principal_ids.worker_plane
+  principal_id         = var.settings.identity.principal_ids.worker
 }
 
 #
@@ -66,7 +66,7 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "main" {
     ip_configuration {
       name      = "ipconfig1"
       primary   = true
-      subnet_id = var.settings.network.subnet_ids.worker_plane
+      subnet_id = var.settings.network.subnet_ids.worker
     }
   }
 
@@ -92,7 +92,7 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "main" {
 
   identity {
     type         = "UserAssigned"
-    identity_ids = [var.settings.identity.user_ids.worker_plane]
+    identity_ids = [var.settings.identity.user_ids.worker]
   }
 }
 
