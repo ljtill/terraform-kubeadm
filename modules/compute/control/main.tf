@@ -16,7 +16,7 @@ resource "azurerm_resource_group" "main" {
 resource "azurerm_role_assignment" "main" {
   scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${azurerm_resource_group.main.name}"
   role_definition_name = "Contributor"
-  principal_id         = var.settings.identity.principal_ids.control_plane
+  principal_id         = var.settings.identity.principal_ids.control
 }
 
 #
@@ -30,7 +30,7 @@ resource "azurerm_network_interface" "main_primary" {
 
   ip_configuration {
     name                          = "ipconfig1"
-    subnet_id                     = var.settings.network.subnet_ids.control_plane
+    subnet_id                     = var.settings.network.subnet_ids.control
     private_ip_address_allocation = "Static"
     private_ip_address            = var.settings.compute.virtual_machines.primary.ip_address
   }
@@ -42,7 +42,7 @@ resource "azurerm_network_interface" "main_secondary" {
 
   ip_configuration {
     name                          = "ipconfig1"
-    subnet_id                     = var.settings.network.subnet_ids.control_plane
+    subnet_id                     = var.settings.network.subnet_ids.control
     private_ip_address_allocation = "Static"
     private_ip_address            = var.settings.compute.virtual_machines.secondary.ip_address
   }
@@ -54,7 +54,7 @@ resource "azurerm_network_interface" "main_tertiary" {
 
   ip_configuration {
     name                          = "ipconfig1"
-    subnet_id                     = var.settings.network.subnet_ids.control_plane
+    subnet_id                     = var.settings.network.subnet_ids.control
     private_ip_address_allocation = "Static"
     private_ip_address            = var.settings.compute.virtual_machines.tertiary.ip_address
   }
@@ -63,17 +63,17 @@ resource "azurerm_network_interface" "main_tertiary" {
 resource "azurerm_network_interface_backend_address_pool_association" "main_primary" {
   network_interface_id    = azurerm_network_interface.main_primary.id
   ip_configuration_name   = "ipconfig1"
-  backend_address_pool_id = var.settings.network.backend_ids.control_plane
+  backend_address_pool_id = var.settings.network.backend_ids.control
 }
 resource "azurerm_network_interface_backend_address_pool_association" "main_secondary" {
   network_interface_id    = azurerm_network_interface.main_secondary.id
   ip_configuration_name   = "ipconfig1"
-  backend_address_pool_id = var.settings.network.backend_ids.control_plane
+  backend_address_pool_id = var.settings.network.backend_ids.control
 }
 resource "azurerm_network_interface_backend_address_pool_association" "main_tertiary" {
   network_interface_id    = azurerm_network_interface.main_tertiary.id
   ip_configuration_name   = "ipconfig1"
-  backend_address_pool_id = var.settings.network.backend_ids.control_plane
+  backend_address_pool_id = var.settings.network.backend_ids.control
 }
 
 #
@@ -113,7 +113,7 @@ resource "azurerm_linux_virtual_machine" "main_primary" {
 
   identity {
     type         = "UserAssigned"
-    identity_ids = [var.settings.identity.user_ids.control_plane]
+    identity_ids = [var.settings.identity.user_ids.control]
   }
 }
 resource "azurerm_linux_virtual_machine" "main_secondary" {
@@ -149,7 +149,7 @@ resource "azurerm_linux_virtual_machine" "main_secondary" {
 
   identity {
     type         = "UserAssigned"
-    identity_ids = [var.settings.identity.user_ids.control_plane]
+    identity_ids = [var.settings.identity.user_ids.control]
   }
 }
 resource "azurerm_linux_virtual_machine" "main_tertiary" {
@@ -185,7 +185,7 @@ resource "azurerm_linux_virtual_machine" "main_tertiary" {
 
   identity {
     type         = "UserAssigned"
-    identity_ids = [var.settings.identity.user_ids.control_plane]
+    identity_ids = [var.settings.identity.user_ids.control]
   }
 }
 

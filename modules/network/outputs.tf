@@ -4,15 +4,15 @@ output "virtual_network_id" {
 
 output "subnet_ids" {
   value = {
-    service_plane = azurerm_subnet.main_bastion.id
-    control_plane = azurerm_subnet.main_control.id
-    worker_plane  = azurerm_subnet.main_worker.id
+    control = azurerm_subnet.main_control.id
+    worker  = azurerm_subnet.main_worker.id
+    bastion = azurerm_subnet.main_bastion.id
   }
 }
 
 output "backend_ids" {
   value = {
-    control_plane = azurerm_lb_backend_address_pool.main_control.id
-    worker_plane  = ""
+    control = azurerm_lb_backend_address_pool.main_control.id
+    worker  = ""
   }
 }

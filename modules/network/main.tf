@@ -16,7 +16,7 @@ resource "azurerm_resource_group" "main" {
 resource "azurerm_role_assignment" "main" {
   scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${azurerm_resource_group.main.name}"
   role_definition_name = "Contributor"
-  principal_id         = var.settings.identity.principal_ids.control_plane
+  principal_id         = var.settings.identity.principal_ids.control
 }
 
 #

@@ -22,7 +22,7 @@ resource "azurerm_network_interface" "main" {
 
   ip_configuration {
     name                          = "ipconfig1"
-    subnet_id                     = var.settings.network.subnet_ids.service_plane
+    subnet_id                     = var.settings.network.subnet_ids.bastion
     private_ip_address_allocation = "Static"
     private_ip_address            = var.settings.compute.bastion.ip_address
     public_ip_address_id          = azurerm_public_ip.main.id
