@@ -4,18 +4,3 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-
-  - package-ecosystem: "terraform"
-    directory: "/modules/compute"
-    schedule:
-      interval: "daily"
-
-  - package-ecosystem: "terraform"
-    directory: "/modules/identity"
-    schedule:
-      interval: "daily"
-
-  - package-ecosystem: "terraform"
-    directory: "/modules/network"
-    schedule:
-      interval: "daily"
